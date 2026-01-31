@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>המעבדה להנדסה גנטית - לומדים תוך כדי תנועה</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Heebo', sans-serif;
+            background-color: #f0f9ff;
+            user-select: none;
+        }
+
+        .stage {
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .draggable {
+            cursor: grab;
+            touch-action: none;
+        }
+        
+        .draggable:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+        }
+
+        .drop-zone.highlight {
+            background-color: rgba(74, 222, 128, 0.2);
+            border-color: #4ade80;
+            transform: scale(1.05);
+        }
+
+        /* Animation for bacteria multiplication */
+        .multiply-anim {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Pulse animation for clickable items */
+        .pulse-action {
+            animation: pulse-border 2s infinite;
+        }
+        
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+
+        /* Insulin flying to syringe animation */
+        .fly-to-syringe {
+            transition: all 1s ease-in-out;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-2 md:p-4 text-slate-800 bg-slate-50">
+
+    <!-- Header -->
+    <header class="text-center mb-4 mt-2">
+        <h1 class="text-2xl md:text-3xl font-bold text-blue-700">🧬 המעבדה להנדסה גנטית</h1>
+    </header>
+
+    <!-- Main Container -->
+    <div class="relative bg-white rounded-2xl shadow-xl border-2 border-blue-100 w-full max-w-3xl min-h-[650px] flex flex-col overflow-hidden">
+        
+        <!-- Progress Bar -->
+        <div class="bg-gray-100 h-2 w-full">
+            <div id="progress-bar" class="bg-green-500 h-full transition-all duration-700" style="width: 0%"></div>
+        </div>
+
+        <!-- STAGE 0: Intro & Mission -->
+        <div id="stage-0" class="stage flex-grow flex flex-col items-center justify-center p-8 text-center h-full">
+            <div class="text-7xl mb-6">🥼</div>
+            <h2 class="text-3xl font-bold mb-4 text-slate-800">ברוכים הבאים למעבדה!</h2>
+            <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 max-w-lg">
+                <h3 class="font-bold text-lg mb-2 text-blue-800">המשימה להיום: ייצור אינסולין</h3>
+                <p class="text-slate-600 mb-4">
+                    אינסולין הוא הורמון חיוני לחולי סוכרת. בעבר הפיקו אותו מבעלי חיים, אך היום אנחנו יודעים לייצר אותו במעבדה.<br>
+                    עליכם לפעול שלב אחר שלב כדי להנדס חיידק שייצר את התרופה.
+                </p>
+                <div class="text-sm font-bold text-slate-500">האם אתם מוכנים?</div>
+            </div>
+            <button onclick="nextStage(1)" class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-10 rounded-full shadow-lg transition hover:scale-105 active:scale-95 animate-bounce">
+                כן, בואו נתחיל! ⬅️
+            </button>
+        </div>
+
+        <!-- STAGE 1: Extraction (Blood & Bacteria) -->
+        <div id="stage-1" class="stage hidden flex-col items-center p-6 w-full h-full text-center">
+            <h2 class="text-xl font-bold text-blue-800 mb-2">שלב 1: איסוף החומרים</h2>
+            <p class="text-slate-600 mb-8 max-w-lg">לחצו על הכלים כדי להפיק את ה-DNA הדרוש לנו.</p>
+            
+            <div class="flex flex-col md:flex-row justify-around w-full gap-8 items-center">
+                
+                <!-- Petri Dish -->
+                <div id="petri-container" class="flex flex-col items-center cursor-pointer transition transform hover:scale-105" onclick="extractPlasmid()">
+                    <div class="relative w-40 h-40 bg-orange-100 rounded-full border-4 border-slate-200 shadow-inner flex items-center justify-center pulse-action" id="petri-dish">
+                        <!-- Bacteria Dots -->
+                        <div class="absolute w-2 h-2 bg-orange-400 rounded-full top-10 left-10"></div>
+                        <div class="absolute w-2 h-2 bg-orange-400 rounded-full top-20 left-24"></div>
+                        <div class="absolute w-2 h-2 bg-orange-400 rounded-full top-28 left-14"></div>
+                        <div class="absolute w-2 h-2 bg-orange-400 rounded-full top-14 left-20"></div>
+                        <span class="font-bold text-slate-400 opacity-50 select-none">חיידקים</span>
+                    </div>
+                    <p class="mt-2 font-bold text-slate-700">צלחת פטרי</p>
+                    <div id="extracted-plasmid" class="hidden mt-2 text-green-600 font-bold text-sm bg-green-50 px-2 py-1 rounded border border-green-200">
+                        ✅ הופק פלסמיד
+                    </div>
+                </div>
+
+                <!-- Test Tube -->
+                <div id="tube-container" class="flex flex-col items-center cursor-pointer transition transform hover:scale-105" onclick="extractHumanDNA()">
+                    <div class="relative w-16 h-40 bg-red-50 rounded-b-3xl border-2 border-slate-300 shadow-inner flex flex-col justify-end overflow-hidden pulse-action" id="test-tube">
+                        <div class="w-full h-2/3 bg-red-500 opacity-80 flex items-center justify-center"></div>
+                    </div>
+                    <p class="mt-2 font-bold text-slate-700">מבחנת דם</p>
+                    <div id="extracted-dna" class="hidden mt-2 text-green-600 font-bold text-sm bg-green-50 px-2 py-1 rounded border border-green-200">
+                        ✅ הופק DNA אנושי
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal / Info Box for extraction details -->
+            <div id="extraction-info" class="mt-8 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-right hidden max-w-lg">
+                <p id="extraction-text" class="text-sm"></p>
+            </div>
+
+            <button id="btn-stage-1" onclick="nextStage(2)" class="hidden mt-auto mb-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-8 rounded-full shadow-lg transition">
+                המשך לשלב החיתוך
+            </button>
+        </div>
+
+        <!-- STAGE 2: Cutting Human DNA -->
+        <div id="stage-2" class="stage hidden flex-col items-center p-6 w-full h-full text-center">
+            <h2 class="text-xl font-bold text-blue-800 mb-2">שלב 2: בידוד הגן לאינסולין</h2>
+            <p class="text-slate-600 mb-6 max-w-lg text-sm">
+                הפקנו DNA מתאי הדם הלבנים. כעת עלינו "לגזור" מתוכו רק את המקטע האחראי לייצור אינסולין.
+            </p>
+
+            <div class="relative w-full max-w-lg h-32 bg-slate-100 rounded-xl border border-slate-300 flex items-center justify-center overflow-hidden mb-6">
+                <!-- Long DNA Strand -->
+                <div id="long-dna" class="flex items-center transition-all duration-1000">
+                    <div class="w-20 h-4 bg-gray-300 rounded-r-none border-r-2 border-dashed border-gray-400"></div>
+                    <div id="target-gene" class="w-32 h-6 bg-red-500 text-white text-xs flex items-center justify-center font-bold shadow-md z-10 mx-1 rounded">
+                        גן לאינסולין
+                    </div>
+                    <div class="w-20 h-4 bg-gray-300 rounded-l-none border-l-2 border-dashed border-gray-400"></div>
+                </div>
+                
+                <!-- Scissors -->
+                <div id="scissors-human" class="absolute top-2 right-1/2 transform translate-x-1/2 opacity-0 transition-all duration-500 text-4xl">
+                    ✂️
+                </div>
+            </div>
+
+            <button id="cut-human-btn" onclick="cutHumanGene()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition pulse-action">
+                ✂️ הפעל אנזימי חיתוך
+            </button>
+
+            <div id="cut-human-msg" class="hidden mt-4 text-green-700 font-bold bg-green-100 p-2 rounded">
+                הגן בודד בהצלחה! האנזימים זיהו את רצף ה-DNA וחתכו בדיוק במקום.
+            </div>
+            
+            <button id="btn-stage-2" onclick="nextStage(3)" class="hidden mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-8 rounded-full shadow-lg">
+                המשך לפלסמיד
+            </button>
+        </div>
+
+        <!-- STAGE 3: Cutting Plasmid -->
+        <div id="stage-3" class="stage hidden flex-col items-center p-6 w-full h-full text-center">
+            <h2 class="text-xl font-bold text-blue-800 mb-2">שלב 3: פתיחת הפלסמיד</h2>
+            <p class="text-slate-600 mb-4 max-w-lg text-sm">
+                הפלסמיד הוא טבעת DNA סגורה. כדי להכניס לתוכה את הגן שלנו, עלינו לפתוח אותה.
+            </p>
+            
+            <div class="bg-blue-50 p-3 rounded-lg text-xs text-blue-800 mb-6 max-w-md border border-blue-200">
+                💡 <strong>שימו לב:</strong> אנחנו משתמשים באנלוגיה של מספריים, אבל במציאות מדובר באנזימים שמבצעים ריאקציה כימית לפירוק קשרים במולקולה.
+            </div>
+
+            <div class="relative mb-6">
+                <svg width="150" height="150" viewBox="0 0 100 100" class="transition-all duration-1000">
+                    <circle id="plasmid-ring-cut" cx="50" cy="50" r="40" stroke="#4ade80" stroke-width="8" fill="none" />
+                </svg>
+                <div id="scissors-plasmid" class="absolute top-0 right-0 text-4xl opacity-0 transition-opacity">✂️</div>
+            </div>
+
+            <button id="cut-plasmid-btn" onclick="cutPlasmid()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition pulse-action">
+                ✂️ בצע חיתוך בפלסמיד
+            </button>
+
+            <div id="cut-plasmid-msg" class="hidden mt-4 text-green-700 font-bold bg-green-100 p-2 rounded">
+                הטבעת נפתחה! כעת יש מקום להכניס את הגן החדש.
+            </div>
+
+            <button id="btn-stage-3" onclick="nextStage(4)" class="hidden mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-8 rounded-full shadow-lg">
+                המשך להדבקה
+            </button>
+        </div>
+
+        <!-- STAGE 4: Ligation -->
+        <div id="stage-4" class="stage hidden flex-col items-center p-6 w-full h-full text-center">
+            <h2 class="text-xl font-bold text-blue-800 mb-2">שלב 4: יצירת פלסמיד רקומביננטי</h2>
+            <p class="text-slate-600 mb-6 max-w-lg text-sm">
+                כעת נחבר את גן האינסולין (האדום) לתוך הפלסמיד הפתוח (הירוק) בעזרת "דבק ביולוגי" שנקרא <strong>אנזים ליגאז</strong>.
+            </p>
+
+            <div class="relative w-full h-64 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center">
+                <p class="absolute top-4 text-xs text-slate-400">גררו את הגן למקום החסר בפלסמיד</p>
+                
+                <!-- Target Plasmid -->
+                <div id="drop-zone-ligation" class="drop-zone w-48 h-48 flex items-center justify-center rounded-full transition-all">
+                    <svg width="160" height="160" viewBox="0 0 100 100">
+                        <path d="M 50 15 A 35 35 0 1 1 55 15.5" stroke="#4ade80" stroke-width="6" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+
+                <!-- Draggable Gene -->
+                <div id="drag-gene" class="draggable absolute bottom-6 w-20 h-6 bg-red-500 rounded text-white text-xs font-bold flex items-center justify-center shadow-lg z-20 cursor-grab" draggable="true">
+                    גן לאינסולין
+                </div>
+            </div>
+
+            <button id="btn-stage-4" onclick="nextStage(5)" class="hidden mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-8 rounded-full shadow-lg">
+                המשך להחדרה לחיידק
+            </button>
+        </div>
+
+        <!-- STAGE 5: Transformation -->
+        <div id="stage-5" class="stage hidden flex-col items-center p-6 w-full h-full text-center">
+            <h2 class="text-xl font-bold text-blue-800 mb-2">שלב 5: החדרת הפלסמיד לחיידק</h2>
+            <p class="text-slate-600 mb-6 max-w-lg text-sm">
+                הפלסמיד החדש שלנו מוכן! עלינו להחזיר אותו לתוך החיידק כדי שהחיידק "יקרא" את ההוראות החדשות ויתחיל לעבוד.
+            </p>
+
+            <div class="relative w-full h-64 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300 flex flex-col md:flex-row items-center justify-center gap-12">
+                 <!-- Added Instruction Here -->
+                 <p class="absolute top-4 text-xs text-slate-400 font-bold bg-white px-2 rounded">גררו את הפלסמיד אל תוך החיידק</p>
+
+                <!-- Draggable Plasmid -->
+                <div id="drag-plasmid-final" class="draggable z-20 cursor-grab" style="touch-action: none;">
+                    <svg width="80" height="80" viewBox="0 0 100 100" class="filter drop-shadow-lg">
+                        <circle cx="50" cy="50" r="40" stroke="#4ade80" stroke-width="8" fill="white" />
+                        <path d="M 45 10 A 40 40 0 0 1 55 10" stroke="#ef4444" stroke-width="8" fill="none" />
+                    </svg>
+                    <div class="text-xs font-bold text-center mt-1">פלסמיד משולב</div>
+                </div>
+
+                <!-- Bacteria Target -->
+                <div id="bacteria-target" class="drop-zone w-32 h-48 bg-orange-100 border-4 border-orange-300 rounded-[2rem] flex items-center justify-center relative overflow-hidden transition-all">
+                    <span class="text-orange-300 font-bold opacity-50 absolute bottom-2">E. Coli</span>
+                    <!-- Bacterial DNA -->
+                    <svg width="60" height="40" viewBox="0 0 100 100" class="opacity-30 absolute top-4">
+                        <path d="M10,50 Q30,20 50,50 T90,50" stroke="orange" stroke-width="5" fill="none"/>
+                    </svg>
+                </div>
+            </div>
+
+            <button id="btn-stage-5" onclick="nextStage(6)" class="hidden mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-8 rounded-full shadow-lg">
+                הפעל את המפעל!
+            </button>
+        </div>
+
+        <!-- STAGE 6: Production & Collection -->
+        <div id="stage-6" class="stage hidden flex-col items-center p-6 w-full h-full text-center overflow-y-auto">
+            <h2 class="text-xl font-bold text-blue-800 mb-2">שלב 6: ייצור המוני ואיסוף</h2>
+            <p class="text-slate-600 mb-4 text-sm">
+                החיידק מתרבה ומייצר אינסולין (הנקודות האדומות). עלינו לאסוף את התוצר למזרק.
+            </p>
+
+            <div class="flex items-end justify-center gap-4 w-full mb-6">
+                <!-- Petri Dish -->
+                <div id="petri-production" class="relative w-56 h-56 bg-orange-50 border-4 border-slate-300 rounded-full flex flex-wrap items-center justify-center content-center gap-2 overflow-hidden p-4">
+                    <!-- Initial Bacteria -->
+                    <div class="w-10 h-6 bg-orange-200 rounded-full border border-orange-400 flex items-center justify-center relative multiply-anim">
+                        <div class="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse absolute -top-1 -right-1"></div>
+                    </div>
+                </div>
+
+                <!-- Syringe (Initially Empty) -->
+                <div id="syringe-container" class="relative w-16 h-48 flex flex-col items-center opacity-50 transition-all duration-1000">
+                    <!-- Needle -->
+                    <div class="w-1 h-8 bg-gray-400"></div>
+                    <!-- Barrel -->
+                    <div class="w-12 h-32 border-2 border-gray-400 rounded-b-lg bg-white relative overflow-hidden flex flex-col justify-end">
+                        <!-- Measurements -->
+                        <div class="absolute right-0 top-4 w-2 h-0.5 bg-gray-300"></div>
+                        <div class="absolute right-0 top-8 w-2 h-0.5 bg-gray-300"></div>
+                        <div class="absolute right-0 top-12 w-2 h-0.5 bg-gray-300"></div>
+                        <div class="absolute right-0 top-16 w-2 h-0.5 bg-gray-300"></div>
+                        <div class="absolute right-0 top-20 w-2 h-0.5 bg-gray-300"></div>
+                        <div class="absolute right-0 top-24 w-2 h-0.5 bg-gray-300"></div>
+                        
+                        <!-- Liquid (Insulin) -->
+                        <div id="syringe-liquid" class="w-full bg-red-500 transition-all duration-2000 ease-out h-0 opacity-80"></div>
+                    </div>
+                    <!-- Plunger -->
+                    <div id="syringe-plunger" class="w-10 h-2 bg-gray-600 absolute top-6 transition-all duration-2000 ease-out">
+                         <div class="w-1 h-20 bg-gray-400 mx-auto -mt-20"></div>
+                         <div class="w-14 h-2 bg-gray-600 mx-auto -mt-20 rounded"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="multiply-btn" onclick="multiplyBacteria()" class="mb-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg shadow transition pulse-action">
+                ⌛ המתן להתרבות
+            </button>
+
+            <button id="collect-btn" onclick="collectInsulin()" class="hidden mb-2 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow transition pulse-action">
+                💉 אסוף אינסולין למזרק
+            </button>
+
+            <div id="insulin-counter" class="text-lg font-bold text-slate-700 hidden">
+                מנות אינסולין שנאספו: <span id="count" class="text-red-600 text-2xl">0</span>
+            </div>
+
+            <button id="btn-stage-6" onclick="nextStage(7)" class="hidden mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-8 rounded-full shadow-lg">
+                סיכום המעבדה
+            </button>
+        </div>
+
+        <!-- STAGE 7: Summary -->
+        <div id="stage-7" class="stage hidden flex-col items-center justify-center p-6 text-center h-full overflow-y-auto">
+            <h2 class="text-3xl font-bold text-green-600 mb-4">כל הכבוד! 🎉</h2>
+            <p class="text-lg mb-6 text-slate-700">הצלחתם לייצר אינסולין אנושי באמצעות הנדסה גנטית.</p>
+            
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-green-100 max-w-2xl w-full text-right">
+                <h3 class="font-bold text-blue-800 text-lg mb-3 border-b pb-2">יישומים נוספים להנדסה גנטית:</h3>
+                <ul class="list-disc list-inside space-y-2 text-slate-700 text-sm md:text-base">
+                    <li>🌽 <strong>חקלאות:</strong> פיתוח צמחים עמידים למזיקים (חוסך ריסוס).</li>
+                    <li>🍚 <strong>מזון:</strong> "אורז זהוב" המועשר בויטמין A למניעת עיוורון.</li>
+                    <li>⚕️ <strong>רפואה:</strong> ייצור הורמון גדילה לילדים עם בעיות גדילה.</li>
+                    <li>🧹 <strong>סביבה:</strong> חיידקים מהונדסים שיודעים לפרק כתמי נפט בים.</li>
+                </ul>
+            </div>
+            
+            <button onclick="location.reload()" class="mt-8 text-blue-600 hover:underline font-bold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                </svg>
+                בצע ניסוי חדש
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // State Management
+        let currentStage = 0;
+        let extractionState = { plasmid: false, human: false };
+        let productionCount = 0;
+
+        function nextStage(num) {
+            // Hide current
+            const currEl = document.getElementById(`stage-${currentStage}`);
+            currEl.classList.add('hidden');
+            currEl.classList.remove('flex');
+            
+            // Show next
+            currentStage = num;
+            const nextEl = document.getElementById(`stage-${num}`);
+            nextEl.classList.remove('hidden');
+            nextEl.classList.add('flex');
+            
+            // Update Progress Bar (approximate)
+            const progress = (num / 7) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+
+            // Init drag logic if needed
+            if(num === 4) initLigationDrag();
+            if(num === 5) initTransformationDrag();
+        }
+
+        // --- STAGE 1 LOGIC: Extraction ---
+        function extractPlasmid() {
+            if(extractionState.plasmid) return;
+            
+            document.getElementById('extracted-plasmid').classList.remove('hidden');
+            document.getElementById('petri-dish').classList.remove('pulse-action');
+            document.getElementById('petri-dish').classList.add('border-green-400');
+            
+            showExtractionInfo("מצוין! הפקתם פלסמיד מהחיידק. הפלסמיד הוא טבעת DNA קטנה שמשמשת כנשא לגן שלנו.");
+            extractionState.plasmid = true;
+            checkExtractionComplete();
+        }
+
+        function extractHumanDNA() {
+            if(extractionState.human) return;
+
+            document.getElementById('extracted-dna').classList.remove('hidden');
+            document.getElementById('test-tube').classList.remove('pulse-action');
+            document.getElementById('test-tube').classList.add('border-green-400');
+
+            showExtractionInfo("מעולה! הפקתם DNA מתאי הדם הלבנים (שימו לב: לתאי דם אדומים אין גרעין ולכן אין להם DNA).");
+            extractionState.human = true;
+            checkExtractionComplete();
+        }
+
+        function showExtractionInfo(text) {
+            const infoBox = document.getElementById('extraction-info');
+            const infoText = document.getElementById('extraction-text');
+            infoBox.classList.remove('hidden');
+            infoText.innerHTML = text;
+        }
+
+        function checkExtractionComplete() {
+            if (extractionState.plasmid && extractionState.human) {
+                document.getElementById('btn-stage-1').classList.remove('hidden');
+            }
+        }
+
+        // --- STAGE 2 LOGIC: Cutting Gene ---
+        function cutHumanGene() {
+            const btn = document.getElementById('cut-human-btn');
+            const scissors = document.getElementById('scissors-human');
+            const gene = document.getElementById('target-gene');
+            
+            btn.disabled = true;
+            btn.classList.remove('pulse-action');
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // Animation sequence
+            scissors.style.opacity = '1';
+            
+            setTimeout(() => {
+                // Cut animation
+                scissors.style.right = '45%'; // Move slightly
+                setTimeout(() => {
+                    scissors.style.right = '55%'; // Move other side
+                }, 500);
+
+                setTimeout(() => {
+                    scissors.style.opacity = '0';
+                    // Hide side strands
+                    document.getElementById('long-dna').children[0].style.opacity = '0.2';
+                    document.getElementById('long-dna').children[2].style.opacity = '0.2';
+                    gene.classList.add('scale-110', 'border-2', 'border-yellow-400');
+                    
+                    document.getElementById('cut-human-msg').classList.remove('hidden');
+                    document.getElementById('btn-stage-2').classList.remove('hidden');
+                }, 1000);
+            }, 500);
+        }
+
+        // --- STAGE 3 LOGIC: Cutting Plasmid ---
+        function cutPlasmid() {
+            const btn = document.getElementById('cut-plasmid-btn');
+            const scissors = document.getElementById('scissors-plasmid');
+            const ring = document.getElementById('plasmid-ring-cut');
+
+            btn.disabled = true;
+            btn.classList.remove('pulse-action');
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            scissors.style.opacity = '1';
+            scissors.style.top = '10px';
+            scissors.style.right = '45%';
+
+            setTimeout(() => {
+                // Open the ring visually
+                ring.setAttribute('stroke-dasharray', '200'); 
+                ring.setAttribute('stroke-dashoffset', '30');
+                ring.setAttribute('transform', 'rotate(-30 50 50)');
+                
+                scissors.style.opacity = '0';
+                
+                document.getElementById('cut-plasmid-msg').classList.remove('hidden');
+                document.getElementById('btn-stage-3').classList.remove('hidden');
+            }, 1000);
+        }
+
+        // --- STAGE 4 LOGIC: Ligation Drag & Drop ---
+        function initLigationDrag() {
+            makeDraggable('drag-gene', 'drop-zone-ligation', (gene, zone) => {
+                gene.style.display = 'none';
+                
+                // Update SVG to show connected plasmid
+                zone.innerHTML = `
+                    <svg width="160" height="160" viewBox="0 0 100 100" class="animate-pulse">
+                        <circle cx="50" cy="50" r="35" stroke="#4ade80" stroke-width="6" fill="none" />
+                        <path d="M 45 15 A 35 35 0 0 1 55 15" stroke="#ef4444" stroke-width="6" fill="none" />
+                    </svg>
+                    <div class="absolute mt-24 text-green-700 font-bold bg-white/80 px-2 rounded text-sm">אנזים הליגאז הדביק את הקצוות!</div>
+                `;
+                
+                setTimeout(() => {
+                    document.getElementById('btn-stage-4').classList.remove('hidden');
+                }, 1000);
+            });
+        }
+
+        // --- STAGE 5 LOGIC: Transformation Drag & Drop ---
+        function initTransformationDrag() {
+            makeDraggable('drag-plasmid-final', 'bacteria-target', (plasmid, bacteria) => {
+                plasmid.style.display = 'none';
+                
+                // Visual feedback on bacteria
+                bacteria.classList.remove('bg-orange-100');
+                bacteria.classList.add('bg-orange-200', 'border-green-400');
+                
+                // Add plasmid inside
+                const internalPlasmid = document.createElement('div');
+                internalPlasmid.className = 'absolute top-10 animate-bounce';
+                internalPlasmid.innerHTML = `
+                    <svg width="40" height="40" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" stroke="#4ade80" stroke-width="8" fill="none" />
+                        <path d="M 45 10 A 40 40 0 0 1 55 10" stroke="#ef4444" stroke-width="8" fill="none" />
+                    </svg>
+                `;
+                bacteria.appendChild(internalPlasmid);
+
+                setTimeout(() => {
+                    document.getElementById('btn-stage-5').classList.remove('hidden');
+                }, 1000);
+            });
+        }
+
+        // --- STAGE 6 LOGIC: Production & Collection ---
+        function multiplyBacteria() {
+            const petri = document.getElementById('petri-production');
+            const currentBacteria = petri.children.length;
+            const multiplyBtn = document.getElementById('multiply-btn');
+            const collectBtn = document.getElementById('collect-btn');
+            
+            // Limit the number of bacteria on screen
+            if(currentBacteria > 10) {
+                multiplyBtn.classList.add('hidden');
+                collectBtn.classList.remove('hidden');
+                document.getElementById('syringe-container').classList.remove('opacity-50');
+                document.getElementById('syringe-container').classList.add('opacity-100');
+                return;
+            }
+
+            // Create new bacteria with Insulin dots
+            for(let i=0; i < currentBacteria; i++) {
+                const b = document.createElement('div');
+                b.className = 'w-10 h-6 bg-orange-200 rounded-full border border-orange-400 flex items-center justify-center relative multiply-anim mb-1 mr-1';
+                
+                // Visual representation of Insulin
+                b.innerHTML = `
+                    <div class="insulin-dot w-1.5 h-1.5 bg-red-600 rounded-full absolute -top-1 -left-1 shadow-sm"></div>
+                    <div class="insulin-dot w-1.5 h-1.5 bg-red-600 rounded-full absolute -bottom-1 -right-1 shadow-sm"></div>
+                `; 
+                petri.appendChild(b);
+            }
+            
+            // If enough bacteria, show collect button
+            if(petri.children.length > 8) {
+                multiplyBtn.innerText = "ייצור מספיק! לחץ לאיסוף";
+                setTimeout(() => {
+                    multiplyBtn.classList.add('hidden');
+                    collectBtn.classList.remove('hidden');
+                    document.getElementById('syringe-container').classList.remove('opacity-50');
+                    document.getElementById('syringe-container').classList.add('opacity-100');
+                }, 1000);
+            }
+        }
+
+        function collectInsulin() {
+            const collectBtn = document.getElementById('collect-btn');
+            const syringeLiquid = document.getElementById('syringe-liquid');
+            const syringePlunger = document.getElementById('syringe-plunger');
+            const dots = document.querySelectorAll('.insulin-dot');
+            const counter = document.getElementById('insulin-counter');
+            const countSpan = document.getElementById('count');
+            
+            collectBtn.classList.add('hidden');
+            
+            // Animate dots flying to syringe
+            dots.forEach((dot, index) => {
+                setTimeout(() => {
+                    dot.classList.add('fly-to-syringe');
+                    dot.style.transform = 'translate(100px, -50px) scale(0)';
+                    dot.style.opacity = '0';
+                }, index * 20);
+            });
+
+            // Animate Syringe Filling
+            setTimeout(() => {
+                syringeLiquid.style.height = '100%';
+                syringePlunger.style.top = '-80px'; // Pull plunger up
+                
+                // Show counter
+                counter.classList.remove('hidden');
+                let target = 50000;
+                countSpan.innerText = target.toLocaleString();
+                
+                document.getElementById('btn-stage-6').classList.remove('hidden');
+            }, 1000);
+        }
+
+        // --- DRAG AND DROP UTILITY (Mouse & Touch) ---
+        function makeDraggable(elementId, dropZoneId, onDropCallback) {
+            const el = document.getElementById(elementId);
+            const dropZone = document.getElementById(dropZoneId);
+            let isDragging = false;
+            let startX, startY;
+
+            // Mouse
+            el.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', endDrag);
+
+            // Touch
+            el.addEventListener('touchstart', (e) => startDrag(e.touches[0]));
+            document.addEventListener('touchmove', (e) => {
+                if (isDragging) {
+                    e.preventDefault();
+                    drag(e.touches[0]);
+                }
+            }, { passive: false });
+            document.addEventListener('touchend', endDrag);
+
+            function startDrag(e) {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                el.style.zIndex = 100;
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                el.style.transform = `translate(${dx}px, ${dy}px) scale(1.1)`;
+                
+                if (checkOverlap(el, dropZone)) {
+                    dropZone.classList.add('highlight');
+                } else {
+                    dropZone.classList.remove('highlight');
+                }
+            }
+
+            function endDrag() {
+                if (!isDragging) return;
+                isDragging = false;
+                el.style.zIndex = "";
+                
+                if (checkOverlap(el, dropZone)) {
+                    onDropCallback(el, dropZone);
+                } else {
+                    el.style.transform = "translate(0, 0)";
+                    dropZone.classList.remove('highlight');
+                }
+            }
+        }
+
+        function checkOverlap(el1, el2) {
+            const rect1 = el1.getBoundingClientRect();
+            const rect2 = el2.getBoundingClientRect();
+            return !(rect1.right < rect2.left || rect1.left > rect2.right || rect1.bottom < rect2.top || rect1.top > rect2.bottom);
+        }
+    </script>
+</body>
+</html>
